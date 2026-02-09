@@ -1,0 +1,36 @@
+{
+  "name": "hogium",
+  "version": "0.1.0",
+  "description": "A PostHog-themed Chromium browser",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "node esbuild.config.mjs",
+    "watch": "node esbuild.config.mjs --watch",
+    "start": "electron .",
+    "dev": "pnpm build && electron . --enable-logging",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "posthog",
+    "browser",
+    "chromium",
+    "electron"
+  ],
+  "author": "PostHog",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "electron": "^35.0.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.7.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild"
+    ]
+  },
+  "dependencies": {
+    "@posthog/icons": "^0.36.5"
+  }
+}
