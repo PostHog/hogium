@@ -19,8 +19,6 @@
       --btn-hover: rgba(0, 0, 0, 0.06);
       --btn-active: rgba(0, 0, 0, 0.1);
       --progress-color: #1D4AFF;
-      --hedgehog-active-bg: rgba(29, 74, 255, 0.15);
-      --hedgehog-active-shadow: rgba(29, 74, 255, 0.3);
       --logo-body: #000;
     }
 
@@ -36,8 +34,6 @@
         --btn-hover: rgba(255, 255, 255, 0.08);
         --btn-active: rgba(255, 255, 255, 0.12);
         --progress-color: #2F80FA;
-        --hedgehog-active-bg: rgba(47, 128, 250, 0.2);
-        --hedgehog-active-shadow: rgba(47, 128, 250, 0.4);
         --logo-body: #EAECF6;
       }
     }
@@ -48,7 +44,8 @@
       box-sizing: border-box;
     }
 
-    body {
+    html, body {
+      height: 100%;
       font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--bg);
       color: var(--text-primary);
@@ -175,15 +172,6 @@
       box-shadow: 0 0 0 1px var(--progress-color);
     }
 
-    #hedgehogToggle {
-      font-size: 15px;
-      transition: background 0.2s, box-shadow 0.2s;
-    }
-
-    #hedgehogToggle.active {
-      background: var(--hedgehog-active-bg);
-      box-shadow: 0 0 12px var(--hedgehog-active-shadow);
-    }
   </style>
 </head>
 <body>
@@ -215,16 +203,12 @@
       id="addressBar"
     />
 
-    <button id="hedgehogToggle" onclick="window.hogium.toggleHedgehog()" title="Toggle Hedgehog">🦔</button>
-
     <div class="progress-bar" id="progressBar"></div>
   </div>
 
   <script>
     const addressBar = document.getElementById('addressBar');
     const progressBar = document.getElementById('progressBar');
-    const hedgehogToggle = document.getElementById('hedgehogToggle');
-
     function isUrl(input) {
       if (/^[^\s]+\.[^\s]+$/.test(input)) return true;
       if (/^https?:\/\//i.test(input)) return true;
@@ -253,10 +237,6 @@
 
     window.hogium.onUrlChanged((url) => {
       addressBar.value = url;
-    });
-
-    window.hogium.onHedgehogState((enabled) => {
-      hedgehogToggle.classList.toggle('active', enabled);
     });
 
     window.hogium.onLoading((loading) => {

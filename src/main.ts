@@ -3,14 +3,11 @@ import {
   BaseWindow,
   WebContentsView,
   ipcMain,
-  protocol,
-  net,
   Menu,
   screen,
   nativeTheme,
 } from "electron";
 import path from "path";
-import { readFileSync } from "fs";
 import { TabManager, TabInfo } from "./tab-manager";
 
 let mainWindow: BaseWindow;
@@ -18,8 +15,6 @@ let toolbarView: WebContentsView;
 let sidebarView: WebContentsView;
 let overlayView: WebContentsView;
 let tabManager: TabManager;
-let hedgehogEnabled = false;
-let hedgehogBundleCode: string;
 let sidebarVisible = true;
 let overlayVisible = false;
 
@@ -99,37 +94,6 @@ function hideNewTabOverlay(): void {
 function broadcastTabsToSidebar(tabs: TabInfo[], activeId: number): void {
   const sidebarTabs = tabs.map((t) => ({ ...t, active: t.id === activeId }));
   sidebarView.webContents.send("tabs-updated", sidebarTabs);
-}
-
-function injectHedgehog(webContents: Electron.WebContents): void {
-  if (!hedgehogEnabled) return;
-  webContents.executeJavaScript(hedgehogBundleCode).catch(() => {});
-}
-
-function removeHedgehog(webContents: Electron.WebContents): void {
-  webContents
-    .executeJavaScript(
-      `
-    if (window.__hogiumHedgehog) {
-      window.__hogiumHedgehog.destroy();
-      delete window.__hogiumHedgehog;
-    }
-  `,
-    )
-    .catch(() => {});
-}
-
-function registerProtocol(): void {
-  protocol.handle("hogium", (request) => {
-    const url = new URL(request.url);
-    const filePath = path.join(
-      app.getAppPath(),
-      "assets",
-      "hedgehog",
-      url.pathname,
-    );
-    return net.fetch(`file://${filePath}`);
-  });
 }
 
 function setupApplicationMenu(): void {
@@ -324,10 +288,6 @@ function createWindow(): void {
       mainWindow.setTitle(`${title} - hogium`);
     },
     onTabCreated: (webContents) => {
-      webContents.on("did-finish-load", () => {
-        injectHedgehog(webContents);
-      });
-
       // Right-click context menu
       webContents.on("context-menu", (_event, params) => {
         const menuItems: Electron.MenuItemConstructorOptions[] = [];
@@ -433,11 +393,6 @@ function createWindow(): void {
   setupApplicationMenu();
 }
 
-function loadHedgehogBundle(): void {
-  const bundlePath = path.join(__dirname, "hedgehog-bundle.js");
-  hedgehogBundleCode = readFileSync(bundlePath, "utf-8");
-}
-
 // IPC: navigation
 ipcMain.on("navigate", (_event, url: string) => {
   tabManager?.getActiveView()?.webContents.loadURL(url);
@@ -513,26 +468,7 @@ ipcMain.on("toggle-maximize", () => {
   }
 });
 
-// IPC: hedgehog
-ipcMain.on("toggle-hedgehog", () => {
-  hedgehogEnabled = !hedgehogEnabled;
-  toolbarView.webContents.send("hedgehog-state", hedgehogEnabled);
-
-  for (const tab of tabManager.getAllTabInfos()) {
-    const view = tabManager.getViewForTab(tab.id);
-    if (view) {
-      if (hedgehogEnabled) {
-        injectHedgehog(view.webContents);
-      } else {
-        removeHedgehog(view.webContents);
-      }
-    }
-  }
-});
-
 app.whenReady().then(() => {
-  registerProtocol();
-  loadHedgehogBundle();
   createWindow();
 });
 
