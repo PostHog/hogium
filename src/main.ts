@@ -6,9 +6,9 @@ import {
   Menu,
   screen,
   nativeTheme,
-} from "electron";
-import path from "path";
-import { TabManager, TabInfo } from "./tab-manager";
+} from 'electron';
+import path from 'node:path';
+import { TabManager, TabInfo } from './tab-manager';
 
 let mainWindow: BaseWindow;
 let toolbarView: WebContentsView;
@@ -20,6 +20,18 @@ let overlayVisible = false;
 
 const TOOLBAR_HEIGHT = 44;
 const SIDEBAR_WIDTH = 220;
+
+function loadView(view: WebContentsView, viewName: string, extraParams?: Record<string, string>): void {
+  const params = new URLSearchParams({ view: viewName, ...extraParams });
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    view.webContents.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}?${params}`);
+  } else {
+    view.webContents.loadFile(
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+      { search: params.toString() }
+    );
+  }
+}
 
 function updateLayout(): void {
   const { width, height } = mainWindow.getContentBounds();
@@ -82,7 +94,7 @@ function showNewTabOverlay(): void {
   mainWindow.contentView.addChildView(overlayView);
   updateLayout();
   overlayView.webContents.focus();
-  overlayView.webContents.send("show-overlay");
+  overlayView.webContents.send('show-overlay');
 }
 
 function hideNewTabOverlay(): void {
@@ -93,11 +105,11 @@ function hideNewTabOverlay(): void {
 
 function broadcastTabsToSidebar(tabs: TabInfo[], activeId: number): void {
   const sidebarTabs = tabs.map((t) => ({ ...t, active: t.id === activeId }));
-  sidebarView.webContents.send("tabs-updated", sidebarTabs);
+  sidebarView.webContents.send('tabs-updated', sidebarTabs);
 }
 
 function setupApplicationMenu(): void {
-  const isMac = process.platform === "darwin";
+  const isMac = process.platform === 'darwin';
 
   const template: Electron.MenuItemConstructorOptions[] = [
     ...(isMac
@@ -105,28 +117,28 @@ function setupApplicationMenu(): void {
           {
             label: app.name,
             submenu: [
-              { role: "about" as const },
-              { type: "separator" as const },
-              { role: "hide" as const },
-              { role: "hideOthers" as const },
-              { role: "unhide" as const },
-              { type: "separator" as const },
-              { role: "quit" as const },
+              { role: 'about' as const },
+              { type: 'separator' as const },
+              { role: 'hide' as const },
+              { role: 'hideOthers' as const },
+              { role: 'unhide' as const },
+              { type: 'separator' as const },
+              { role: 'quit' as const },
             ],
           },
         ]
       : []),
     {
-      label: "File",
+      label: 'File',
       submenu: [
         {
-          label: "New Tab",
-          accelerator: "CommandOrControl+T",
+          label: 'New Tab',
+          accelerator: 'CommandOrControl+T',
           click: () => showNewTabOverlay(),
         },
         {
-          label: "Close Tab",
-          accelerator: "CommandOrControl+W",
+          label: 'Close Tab',
+          accelerator: 'CommandOrControl+W',
           click: () => {
             if (overlayVisible) {
               // Don't dismiss if there are no tabs
@@ -139,44 +151,44 @@ function setupApplicationMenu(): void {
           },
         },
         {
-          label: "Focus URL Bar",
-          accelerator: "CommandOrControl+L",
-          click: () => toolbarView.webContents.send("focus-url-bar"),
+          label: 'Focus URL Bar',
+          accelerator: 'CommandOrControl+L',
+          click: () => toolbarView.webContents.send('focus-url-bar'),
         },
       ],
     },
     {
-      label: "Edit",
+      label: 'Edit',
       submenu: [
-        { role: "undo" },
-        { role: "redo" },
-        { type: "separator" },
-        { role: "cut" },
-        { role: "copy" },
-        { role: "paste" },
-        { role: "selectAll" },
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' },
       ],
     },
     {
-      label: "View",
+      label: 'View',
       submenu: [
         {
-          label: "Reload",
-          accelerator: "CommandOrControl+R",
+          label: 'Reload',
+          accelerator: 'CommandOrControl+R',
           click: () => tabManager?.getActiveView()?.webContents.reload(),
         },
         {
-          label: "Toggle Sidebar",
-          accelerator: "CommandOrControl+B",
+          label: 'Toggle Sidebar',
+          accelerator: 'CommandOrControl+B',
           click: () => {
             sidebarVisible = !sidebarVisible;
             updateLayout();
           },
         },
-        { type: "separator" },
+        { type: 'separator' },
         {
-          label: "Developer Tools",
-          accelerator: "CommandOrControl+Alt+I",
+          label: 'Developer Tools',
+          accelerator: 'CommandOrControl+Alt+I',
           click: () => {
             const wc = tabManager?.getActiveView()?.webContents;
             if (wc) {
@@ -186,8 +198,8 @@ function setupApplicationMenu(): void {
           },
         },
         {
-          label: "Developer Tools (F12)",
-          accelerator: "F12",
+          label: 'Developer Tools (F12)',
+          accelerator: 'F12',
           visible: false,
           click: () => {
             const wc = tabManager?.getActiveView()?.webContents;
@@ -200,19 +212,19 @@ function setupApplicationMenu(): void {
       ],
     },
     {
-      label: "Navigate",
+      label: 'Navigate',
       submenu: [
         {
-          label: "Back",
-          accelerator: "CommandOrControl+[",
+          label: 'Back',
+          accelerator: 'CommandOrControl+[',
           click: () => {
             const wc = tabManager?.getActiveView()?.webContents;
             if (wc?.canGoBack()) wc.goBack();
           },
         },
         {
-          label: "Forward",
-          accelerator: "CommandOrControl+]",
+          label: 'Forward',
+          accelerator: 'CommandOrControl+]',
           click: () => {
             const wc = tabManager?.getActiveView()?.webContents;
             if (wc?.canGoForward()) wc.goForward();
@@ -221,16 +233,16 @@ function setupApplicationMenu(): void {
       ],
     },
     {
-      label: "Window",
+      label: 'Window',
       submenu: [
-        { role: "minimize" },
-        { role: "zoom" },
+        { role: 'minimize' },
+        { role: 'zoom' },
         ...(isMac
           ? [
-              { type: "separator" as const },
-              { role: "front" as const },
+              { type: 'separator' as const },
+              { role: 'front' as const },
             ]
-          : [{ role: "close" as const }]),
+          : [{ role: 'close' as const }]),
       ],
     },
   ];
@@ -242,15 +254,15 @@ function createWindow(): void {
   mainWindow = new BaseWindow({
     width: 1200,
     height: 800,
-    titleBarStyle: "hidden",
-    backgroundColor: nativeTheme.shouldUseDarkColors ? "#1E1F23" : "#EEEFE9",
+    titleBarStyle: 'hidden',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1E1F23' : '#EEEFE9',
   });
 
   toolbarView = new WebContentsView({
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
@@ -258,7 +270,7 @@ function createWindow(): void {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, "sidebar-preload.js"),
+      preload: path.join(__dirname, 'sidebar-preload.js'),
     },
   });
 
@@ -266,12 +278,12 @@ function createWindow(): void {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, "new-tab-preload.js"),
+      preload: path.join(__dirname, 'new-tab-preload.js'),
       transparent: true,
     },
   });
-  overlayView.setBackgroundColor("#00000000");
-  overlayView.webContents.loadFile(path.join(__dirname, "new-tab-overlay.html"));
+  overlayView.setBackgroundColor('#00000000');
+  loadView(overlayView, 'new-tab-overlay');
 
   mainWindow.contentView.addChildView(toolbarView);
   mainWindow.contentView.addChildView(sidebarView);
@@ -283,7 +295,7 @@ function createWindow(): void {
       if (view) setActiveTabView(view);
     },
     onUrlChanged: (url) => {
-      toolbarView.webContents.send("url-changed", url);
+      toolbarView.webContents.send('url-changed', url);
     },
     onTitleChanged: (title) => {
       mainWindow.setTitle(`${title} - hogium`);
@@ -301,35 +313,35 @@ function createWindow(): void {
     },
     onTabCreated: (webContents) => {
       // Right-click context menu
-      webContents.on("context-menu", (_event, params) => {
+      webContents.on('context-menu', (_event, params) => {
         const menuItems: Electron.MenuItemConstructorOptions[] = [];
 
         if (params.linkURL) {
           menuItems.push({
-            label: "Open Link in New Tab",
+            label: 'Open Link in New Tab',
             click: () => {
               const tab = tabManager.createTab(params.linkURL);
               tabManager.switchTab(tab.id);
             },
           });
-          menuItems.push({ type: "separator" });
+          menuItems.push({ type: 'separator' });
         }
 
         menuItems.push(
           {
-            label: "Back",
+            label: 'Back',
             click: () => webContents.goBack(),
             enabled: webContents.canGoBack(),
           },
           {
-            label: "Forward",
+            label: 'Forward',
             click: () => webContents.goForward(),
             enabled: webContents.canGoForward(),
           },
-          { label: "Reload", click: () => webContents.reload() },
-          { type: "separator" },
+          { label: 'Reload', click: () => webContents.reload() },
+          { type: 'separator' },
           {
-            label: "Inspect Element",
+            label: 'Inspect Element',
             click: () => webContents.inspectElement(params.x, params.y),
           },
         );
@@ -338,16 +350,16 @@ function createWindow(): void {
       });
 
       // Loading indicator
-      webContents.on("did-start-loading", () => {
-        toolbarView.webContents.send("loading", true);
+      webContents.on('did-start-loading', () => {
+        toolbarView.webContents.send('loading', true);
       });
-      webContents.on("did-stop-loading", () => {
-        toolbarView.webContents.send("loading", false);
+      webContents.on('did-stop-loading', () => {
+        toolbarView.webContents.send('loading', false);
       });
 
       // Error pages
       webContents.on(
-        "did-fail-load",
+        'did-fail-load',
         (_event, errorCode, errorDescription, validatedURL) => {
           if (errorCode === -3) return; // Aborted, ignore
           webContents.loadURL(
@@ -378,22 +390,15 @@ function createWindow(): void {
     },
   });
 
-  mainWindow.on("resize", updateLayout);
+  mainWindow.on('resize', updateLayout);
 
-  toolbarView.webContents.loadFile(path.join(__dirname, "toolbar.html"));
-  toolbarView.webContents.on("did-finish-load", () => {
-    if (process.platform === "darwin") {
-      toolbarView.webContents
-        .executeJavaScript(`document.body.classList.add('macos')`)
-        .catch(() => {});
-    }
-  });
-  sidebarView.webContents.loadFile(path.join(__dirname, "sidebar.html"));
+  loadView(toolbarView, 'toolbar', { platform: process.platform });
+  loadView(sidebarView, 'sidebar');
 
   // Show new tab overlay on launch (no tab created yet)
   showNewTabOverlay();
 
-  mainWindow.on("closed", () => {
+  mainWindow.on('closed', () => {
     tabManager.destroyAll();
     toolbarView.webContents.close();
     sidebarView.webContents.close();
@@ -404,53 +409,53 @@ function createWindow(): void {
 }
 
 // IPC: navigation
-ipcMain.on("navigate", (_event, url: string) => {
+ipcMain.on('navigate', (_event, url: string) => {
   tabManager?.getActiveView()?.webContents.loadURL(url);
 });
 
-ipcMain.on("back", () => {
+ipcMain.on('back', () => {
   const wc = tabManager?.getActiveView()?.webContents;
   if (wc?.canGoBack()) wc.goBack();
 });
 
-ipcMain.on("forward", () => {
+ipcMain.on('forward', () => {
   const wc = tabManager?.getActiveView()?.webContents;
   if (wc?.canGoForward()) wc.goForward();
 });
 
-ipcMain.on("refresh", () => {
+ipcMain.on('refresh', () => {
   tabManager?.getActiveView()?.webContents.reload();
 });
 
 // IPC: tabs
-ipcMain.on("new-tab", () => {
+ipcMain.on('new-tab', () => {
   showNewTabOverlay();
 });
 
-ipcMain.on("new-tab-submit", (_event, url: string) => {
+ipcMain.on('new-tab-submit', (_event, url: string) => {
   hideNewTabOverlay();
   const tab = tabManager.createTab(url);
   tabManager.switchTab(tab.id);
 });
 
-ipcMain.on("new-tab-cancel", () => {
+ipcMain.on('new-tab-cancel', () => {
   // Don't dismiss if there are no tabs — nowhere to go
   if (tabManager.getActiveTabId() < 0) return;
   hideNewTabOverlay();
 });
 
-ipcMain.on("close-tab", (_event, id: number) => {
+ipcMain.on('close-tab', (_event, id: number) => {
   tabManager.closeTab(id);
 });
 
-ipcMain.on("switch-tab", (_event, id: number) => {
+ipcMain.on('switch-tab', (_event, id: number) => {
   tabManager.switchTab(id);
 });
 
 // IPC: window drag from sidebar
 let dragInterval: ReturnType<typeof setInterval> | null = null;
 
-ipcMain.on("start-window-drag", () => {
+ipcMain.on('start-window-drag', () => {
   if (dragInterval) return;
   if (mainWindow.isMaximized()) return;
 
@@ -465,14 +470,14 @@ ipcMain.on("start-window-drag", () => {
   }, 16);
 });
 
-ipcMain.on("stop-window-drag", () => {
+ipcMain.on('stop-window-drag', () => {
   if (dragInterval) {
     clearInterval(dragInterval);
     dragInterval = null;
   }
 });
 
-ipcMain.on("toggle-maximize", () => {
+ipcMain.on('toggle-maximize', () => {
   if (mainWindow.isMaximized()) {
     mainWindow.unmaximize();
   } else {
@@ -484,15 +489,14 @@ app.whenReady().then(() => {
   createWindow();
 });
 
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
-app.on("activate", () => {
+app.on('activate', () => {
   if (BaseWindow.getAllWindows().length === 0) {
     createWindow();
   }
 });
-

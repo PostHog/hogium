@@ -1,4 +1,4 @@
-import { WebContentsView, WebContents } from "electron";
+import { WebContentsView, WebContents } from 'electron';
 
 export interface TabInfo {
   id: number;
@@ -44,10 +44,10 @@ export class TabManager {
       },
     });
 
-    const tab: Tab = { id, view, title: "New Tab", url };
+    const tab: Tab = { id, view, title: 'New Tab', url };
     this.tabs.set(id, tab);
 
-    view.webContents.on("did-navigate", (_event, newUrl) => {
+    view.webContents.on('did-navigate', (_event, newUrl) => {
       tab.url = newUrl;
       if (tab.id === this.activeTabId) {
         this.callbacks.onUrlChanged(newUrl);
@@ -55,7 +55,7 @@ export class TabManager {
       this.broadcastTabs();
     });
 
-    view.webContents.on("did-navigate-in-page", (_event, newUrl) => {
+    view.webContents.on('did-navigate-in-page', (_event, newUrl) => {
       tab.url = newUrl;
       if (tab.id === this.activeTabId) {
         this.callbacks.onUrlChanged(newUrl);
@@ -63,7 +63,7 @@ export class TabManager {
       this.broadcastTabs();
     });
 
-    view.webContents.on("page-title-updated", (_event, title) => {
+    view.webContents.on('page-title-updated', (_event, title) => {
       tab.title = title;
       if (tab.id === this.activeTabId) {
         this.callbacks.onTitleChanged(title);
@@ -71,7 +71,7 @@ export class TabManager {
       this.broadcastTabs();
     });
 
-    view.webContents.on("page-favicon-updated", (_event, favicons) => {
+    view.webContents.on('page-favicon-updated', (_event, favicons) => {
       if (favicons.length > 0) {
         tab.faviconUrl = favicons[0];
         this.broadcastTabs();
@@ -82,7 +82,7 @@ export class TabManager {
       const newTab = this.createTab(openUrl);
       this.switchTab(newTab.id);
       newTab.view.webContents.loadURL(openUrl);
-      return { action: "deny" };
+      return { action: 'deny' };
     });
 
     this.callbacks.onTabCreated?.(view.webContents);
