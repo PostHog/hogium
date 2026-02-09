@@ -129,7 +129,8 @@ function setupApplicationMenu(): void {
           accelerator: "CommandOrControl+W",
           click: () => {
             if (overlayVisible) {
-              hideNewTabOverlay();
+              // Don't dismiss if there are no tabs
+              if (tabManager?.getActiveTabId() >= 0) hideNewTabOverlay();
             } else {
               const activeId = tabManager?.getActiveTabId();
               if (activeId !== undefined && activeId >= 0)
@@ -287,6 +288,17 @@ function createWindow(): void {
     onTitleChanged: (title) => {
       mainWindow.setTitle(`${title} - hogium`);
     },
+    onLastTabClosed: () => {
+      // Remove any leftover tab views
+      const children = mainWindow.contentView.children;
+      for (let i = children.length - 1; i >= 0; i--) {
+        const child = children[i];
+        if (child !== toolbarView && child !== sidebarView && child !== overlayView) {
+          mainWindow.contentView.removeChildView(child);
+        }
+      }
+      showNewTabOverlay();
+    },
     onTabCreated: (webContents) => {
       // Right-click context menu
       webContents.on("context-menu", (_event, params) => {
@@ -378,9 +390,7 @@ function createWindow(): void {
   });
   sidebarView.webContents.loadFile(path.join(__dirname, "sidebar.html"));
 
-  // Show new tab overlay on launch
-  const initialTab = tabManager.createTab("about:blank");
-  tabManager.switchTab(initialTab.id);
+  // Show new tab overlay on launch (no tab created yet)
   showNewTabOverlay();
 
   mainWindow.on("closed", () => {
@@ -424,6 +434,8 @@ ipcMain.on("new-tab-submit", (_event, url: string) => {
 });
 
 ipcMain.on("new-tab-cancel", () => {
+  // Don't dismiss if there are no tabs — nowhere to go
+  if (tabManager.getActiveTabId() < 0) return;
   hideNewTabOverlay();
 });
 

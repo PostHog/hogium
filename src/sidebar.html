@@ -216,6 +216,12 @@
         const li = document.createElement('li');
         li.className = 'tab' + (tab.active ? ' active' : '');
         li.addEventListener('click', () => window.hogiumSidebar.switchTab(tab.id));
+        li.addEventListener('mousedown', (e) => {
+          if (e.button === 1) {
+            e.preventDefault();
+            window.hogiumSidebar.closeTab(tab.id);
+          }
+        });
 
         let faviconHtml;
         if (tab.faviconUrl) {

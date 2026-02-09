@@ -13,6 +13,7 @@ export interface TabCallbacks {
   onUrlChanged: (url: string) => void;
   onTitleChanged: (title: string) => void;
   onTabCreated?: (webContents: WebContents) => void;
+  onLastTabClosed?: () => void;
 }
 
 interface Tab {
@@ -112,9 +113,8 @@ export class TabManager {
       if (remaining.length > 0) {
         this.switchTab(remaining[remaining.length - 1]);
       } else {
-        // Last tab closed — create a replacement
-        const newTab = this.createTab("https://posthog.com");
-        this.switchTab(newTab.id);
+        this.activeTabId = -1;
+        this.callbacks.onLastTabClosed?.();
       }
     }
 
