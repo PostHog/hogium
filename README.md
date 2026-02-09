@@ -1,65 +1,46 @@
-# Hogium
+<p align="center">
+  <img alt="hogium" src="https://raw.githubusercontent.com/PostHog/posthog/master/frontend/public/hedgehog/space-hog.png" width="200">
+</p>
 
-A PostHog-themed Chromium browser built with Electron.
+<h1 align="center">hogium</h1>
 
-## What is Hogium?
+<p align="center">
+  It's a browser. Kind of.
+</p>
 
-Hogium is essentially Chromium under the hood (same engine as Chrome, VS Code, Slack) with PostHog branding and custom features. Built with Electron for rapid iteration and experimentation.
+## 🦔 What is hogium?
 
-## Quick Start
+hogium is a fun side project to answer one question: what would a PostHog browser look like?
+
+Turns out building Chromium from scratch is a nightmare, so we did the next best (worst?) thing — slapped React into an Electron shell and called it a browser. Yes, there's React in your browser rendering engine. No, we're not sorry.
+
+## 🚀 Quick Start
 
 ```bash
-# Install dependencies
-npm install
-
-# Run in development mode
-npm run dev
-
-# Or just start it
-npm start
+pnpm install
+pnpm start
 ```
 
-## Current Features
+## 🛠️ Development
 
-- Custom PostHog-themed toolbar with hedgehog mascot
-- Basic navigation (back, forward, refresh)
-- Address bar for URL navigation
-- PostHog blue color scheme
-
-## Architecture
-
-- **Electron** - Provides Chromium rendering engine + Node.js
-- **BrowserWindow** - Main window with custom toolbar
-- **BrowserView** - Embedded Chromium view for web content
-- **IPC** - Communication between toolbar and browser view
-
-## Next Steps
-
-Potential PostHog-specific features to explore:
-
-- [ ] Built-in PostHog SDK integration
-- [ ] Session replay recording controls
-- [ ] Custom DevTools panels for PostHog debugging
-- [ ] Privacy controls and GDPR compliance features
-- [ ] PostHog event inspector
-- [ ] Feature flag testing tools
-
-## Development
-
-The main entry point is `src/main.js`. The custom toolbar UI is in `src/toolbar.html`.
-
-To enable more verbose logging:
 ```bash
-npm run dev
+# Run in development mode with hot reload
+pnpm start
+
+# Type check
+pnpm typecheck
+
+# Lint
+pnpm lint
+
+# Package for distribution
+pnpm package
 ```
 
-## Why Electron?
+## 🤝 Contributing
 
-Electron gives us:
-- Full Chromium browser (not a wrapper)
-- Easy UI customization
-- Fast iteration for research/spike
-- Cross-platform (macOS, Windows, Linux)
-- Same engine used by Chrome, just with custom chrome (UI)
+PRs welcome. See [PostHog's contributing guide](https://posthog.com/docs/contribute) for general guidelines.
 
-If we need deeper Chromium modifications later, we can always move to a true Chromium fork, but Electron is perfect for prototyping PostHog-specific browser features.
+## 📄 License
+
+MIT
