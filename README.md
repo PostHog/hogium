@@ -8,6 +8,9 @@
   It's a browser. Kind of.
 </p>
 
+> [!WARNING]
+> This is a chaotic experiment held together by vibes and duct tape. If you use this as your daily browser, you are braver than we are.
+
 ## 🦔 What is hogium?
 
 hogium is a fun side project to answer one question: what would a PostHog browser look like?
