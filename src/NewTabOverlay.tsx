@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useChromeStore } from './store';
 import { Autocomplete } from './Autocomplete';
 import { resolveInput } from './url';
 
@@ -12,35 +13,33 @@ export function NewTabOverlay() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [active, setActive] = useState(false);
   const resultsRef = useRef<HistoryEntry[]>([]);
+  const overlay = useChromeStore((s) => s.overlay);
+  const submitOverlay = useChromeStore((s) => s.submitOverlay);
+  const cancelOverlay = useChromeStore((s) => s.cancelOverlay);
+  const searchHistory = useChromeStore((s) => s.searchHistory);
+  const getRecentHistory = useChromeStore((s) => s.getRecentHistory);
 
   useEffect(() => {
-    window.hogiumNewTab.onShow((prefillUrl) => {
-      setActive(false);
-      setInputValue(prefillUrl);
-      setSelectedIndex(-1);
-      setTimeout(() => {
-        setActive(true);
-        inputRef.current?.focus();
-        if (prefillUrl) inputRef.current?.select();
-      }, 0);
-    });
-  }, []);
+    setInputValue(overlay.prefillUrl);
+    setSelectedIndex(-1);
+    setTimeout(() => {
+      inputRef.current?.focus();
+      if (overlay.prefillUrl) inputRef.current?.select();
+    }, 0);
+  }, [overlay.visible, overlay.prefillUrl]);
 
   const dismiss = useCallback(() => {
-    setActive(false);
     setInputValue('');
     setSelectedIndex(-1);
-    window.hogiumNewTab.cancel();
-  }, []);
+    cancelOverlay();
+  }, [cancelOverlay]);
 
   const submit = useCallback((url: string) => {
-    setActive(false);
     setInputValue('');
     setSelectedIndex(-1);
-    window.hogiumNewTab.submit(url);
-  }, []);
+    submitOverlay(url);
+  }, [submitOverlay]);
 
   const handleResultsChange = useCallback((_count: number, results: HistoryEntry[]) => {
     resultsRef.current = results;
@@ -110,9 +109,9 @@ export function NewTabOverlay() {
             query={inputValue}
             onSelect={submit}
             onResultsChange={handleResultsChange}
-            visible={active}
-            searchHistory={window.hogiumNewTab.searchHistory}
-            getRecentHistory={window.hogiumNewTab.getRecentHistory}
+            visible={overlay.visible}
+            searchHistory={searchHistory}
+            getRecentHistory={getRecentHistory}
             selectedIndex={selectedIndex}
             className="overlay-autocomplete"
           />

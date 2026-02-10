@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useChromeStore } from './store';
 
 const PLUS_SVG = (
   <svg viewBox="0 0 24 24"><path fillRule="evenodd" clipRule="evenodd" d="M12 3a.75.75 0 0 1 .75.75v7.5h7.5a.75.75 0 0 1 0 1.5h-7.5v7.5a.75.75 0 0 1-1.5 0v-7.5h-7.5a.75.75 0 0 1 0-1.5h7.5v-7.5A.75.75 0 0 1 12 3Z"/></svg>
@@ -7,24 +8,6 @@ const PLUS_SVG = (
 const CLOSE_SVG = (
   <svg viewBox="0 0 24 24"><path fillRule="evenodd" clipRule="evenodd" d="M4.75 3.69 12 10.94l7.25-7.25 1.06 1.06L13.06 12l7.25 7.25-1.06 1.06L12 13.06l-7.25 7.25-1.06-1.06L10.94 12 3.69 4.75l1.06-1.06Z"/></svg>
 );
-
-interface SidebarTab {
-  id: number;
-  title: string;
-  url: string;
-  faviconUrl?: string;
-  active: boolean;
-}
-
-interface HistoryEntry {
-  id: number;
-  url: string;
-  title: string;
-  faviconUrl?: string;
-  visitedAt: string;
-}
-
-type Panel = 'tabs' | 'history';
 
 function getDateGroup(dateStr: string): string {
   const date = new Date(dateStr + 'Z');
@@ -56,13 +39,17 @@ function HistoryPanel() {
   const [entries, setEntries] = useState<HistoryEntry[]>([]);
   const [query, setQuery] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const searchHistory = useChromeStore((s) => s.searchHistory);
+  const getRecentHistory = useChromeStore((s) => s.getRecentHistory);
+  const deleteHistoryEntry = useChromeStore((s) => s.deleteHistoryEntry);
+  const openUrl = useChromeStore((s) => s.openUrl);
 
   const loadHistory = useCallback(async (search?: string) => {
     const results = search
-      ? await window.hogiumSidebar.searchHistory(search)
-      : await window.hogiumSidebar.getRecentHistory();
+      ? await searchHistory(search)
+      : await getRecentHistory();
     setEntries(results);
-  }, []);
+  }, [searchHistory, getRecentHistory]);
 
   useEffect(() => {
     loadHistory();
@@ -77,7 +64,7 @@ function HistoryPanel() {
   };
 
   const handleDelete = (id: number) => {
-    window.hogiumSidebar.deleteHistoryEntry(id);
+    deleteHistoryEntry(id);
     setEntries((prev) => prev.filter((e) => e.id !== id));
   };
 
@@ -105,7 +92,7 @@ function HistoryPanel() {
               <div
                 key={entry.id}
                 className="history-entry"
-                onClick={() => window.hogiumSidebar.openUrl(entry.url)}
+                onClick={() => openUrl(entry.url)}
               >
                 {entry.faviconUrl ? (
                   <img
@@ -139,59 +126,19 @@ function HistoryPanel() {
 }
 
 export function Sidebar() {
-  const [tabs, setTabs] = useState<SidebarTab[]>([]);
-  const [panel, setPanel] = useState<Panel>('tabs');
-  const draggingRef = useRef(false);
-
-  useEffect(() => {
-    window.hogiumSidebar.onTabsUpdated((updatedTabs) => {
-      setTabs(updatedTabs);
-    });
-  }, []);
-
-  useEffect(() => {
-    const handleMouseDown = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('.tab, .new-tab-btn, .tab-close, .panel-toggle, .history-search, .history-entry, .history-delete')) return;
-      if (e.button !== 0) return;
-      draggingRef.current = true;
-      window.hogiumSidebar.startWindowDrag();
-    };
-
-    const handleMouseUp = () => {
-      if (draggingRef.current) {
-        draggingRef.current = false;
-        window.hogiumSidebar.stopWindowDrag();
-      }
-    };
-
-    const handleDblClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('.tab, .new-tab-btn, .tab-close, .panel-toggle, .history-search, .history-entry, .history-delete')) return;
-      if (draggingRef.current) {
-        draggingRef.current = false;
-        window.hogiumSidebar.stopWindowDrag();
-      }
-      window.hogiumSidebar.toggleMaximize();
-    };
-
-    document.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('dblclick', handleDblClick);
-
-    return () => {
-      document.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('dblclick', handleDblClick);
-    };
-  }, []);
+  const tabs = useChromeStore((s) => s.tabs);
+  const activePanel = useChromeStore((s) => s.activePanel);
+  const setActivePanel = useChromeStore((s) => s.setActivePanel);
+  const newTab = useChromeStore((s) => s.newTab);
+  const switchTab = useChromeStore((s) => s.switchTab);
+  const closeTab = useChromeStore((s) => s.closeTab);
 
   return (
     <div data-view="sidebar">
       <div className="sidebar">
-        {panel === 'tabs' ? (
+        {activePanel === 'tabs' ? (
           <>
-            <button className="new-tab-btn" onClick={() => window.hogiumSidebar.newTab()}>
+            <button className="new-tab-btn" onClick={newTab}>
               {PLUS_SVG}
               <span>New Tab</span>
             </button>
@@ -201,11 +148,11 @@ export function Sidebar() {
                   <li
                     key={tab.id}
                     className={'tab' + (tab.active ? ' active' : '')}
-                    onClick={() => window.hogiumSidebar.switchTab(tab.id)}
+                    onClick={() => switchTab(tab.id)}
                     onMouseDown={(e) => {
                       if (e.button === 1) {
                         e.preventDefault();
-                        window.hogiumSidebar.closeTab(tab.id);
+                        closeTab(tab.id);
                       }
                     }}
                   >
@@ -223,7 +170,7 @@ export function Sidebar() {
                       className="tab-close"
                       onClick={(e) => {
                         e.stopPropagation();
-                        window.hogiumSidebar.closeTab(tab.id);
+                        closeTab(tab.id);
                       }}
                     >
                       {CLOSE_SVG}
@@ -238,14 +185,14 @@ export function Sidebar() {
         )}
         <div className="panel-toggle">
           <button
-            className={panel === 'tabs' ? 'active' : ''}
-            onClick={() => setPanel('tabs')}
+            className={activePanel === 'tabs' ? 'active' : ''}
+            onClick={() => setActivePanel('tabs')}
           >
             Tabs
           </button>
           <button
-            className={panel === 'history' ? 'active' : ''}
-            onClick={() => setPanel('history')}
+            className={activePanel === 'history' ? 'active' : ''}
+            onClick={() => setActivePanel('history')}
           >
             History
           </button>

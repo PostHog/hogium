@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
+import { useChromeStore } from './store';
 
 const LOGO_SVG = (
   <svg viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -12,29 +13,34 @@ const LOGO_SVG = (
 
 export function Toolbar({ platform }: { platform?: string }) {
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const url = useChromeStore((s) => s.currentUrl);
+  const loading = useChromeStore((s) => s.loading);
+  const showOverlay = useChromeStore((s) => s.showOverlay);
+  const back = useChromeStore((s) => s.back);
+  const forward = useChromeStore((s) => s.forward);
+  const refresh = useChromeStore((s) => s.refresh);
+  const newTab = useChromeStore((s) => s.newTab);
   const [progressClass, setProgressClass] = useState('progress-bar');
-  const [url, setUrl] = useState('');
 
   useEffect(() => {
-    window.hogium.onUrlChanged((newUrl) => {
-      setUrl(newUrl);
-    });
+    if (loading) {
+      setProgressClass('progress-bar loading');
+    } else {
+      setProgressClass('progress-bar done');
+      const timer = setTimeout(() => {
+        setProgressClass((prev) => prev === 'progress-bar done' ? 'progress-bar' : prev);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [loading]);
 
-    window.hogium.onLoading((loading) => {
-      if (loading) {
-        setProgressClass('progress-bar loading');
-      } else {
-        setProgressClass('progress-bar done');
-        setTimeout(() => {
-          setProgressClass((prev) => prev === 'progress-bar done' ? 'progress-bar' : prev);
-        }, 500);
-      }
-    });
-
-    window.hogium.onFocusUrlBar(() => {
-      window.hogium.openAddressBar();
-    });
-  }, []);
+  const handleAddressBarClick = () => {
+    if (url) {
+      showOverlay('navigate', url);
+    } else {
+      showOverlay('new-tab');
+    }
+  };
 
   return (
     <div data-view="toolbar" className={platform === 'darwin' ? 'macos' : undefined}>
@@ -45,23 +51,23 @@ export function Toolbar({ platform }: { platform?: string }) {
         </div>
 
         <div className="nav-buttons">
-          <button onClick={() => window.hogium.back()} title="Back">
+          <button onClick={back} title="Back">
             <svg viewBox="0 0 24 24"><path fillRule="evenodd" clipRule="evenodd" d="m5.229 11.332 4.97-4.97a.75.75 0 1 0-1.061-1.06l-5.543 5.543a1.75 1.75 0 0 0 0 2.474l5.543 5.543a.75.75 0 1 0 1.06-1.06l-4.97-4.97h14.94a.75.75 0 0 0 0-1.5H5.228Z"/></svg>
           </button>
-          <button onClick={() => window.hogium.forward()} title="Forward">
+          <button onClick={forward} title="Forward">
             <svg viewBox="0 0 24 24"><path fillRule="evenodd" clipRule="evenodd" d="m18.771 12.832-4.97 4.97a.75.75 0 1 0 1.062 1.06l5.542-5.542a1.75 1.75 0 0 0 0-2.475l-5.543-5.543a.75.75 0 0 0-1.06 1.06l4.97 4.97H3.832a.75.75 0 0 0 0 1.5h14.94Z"/></svg>
           </button>
-          <button onClick={() => window.hogium.refresh()} title="Refresh">
+          <button onClick={refresh} title="Refresh">
             <svg viewBox="0 0 24 24"><path fillRule="evenodd" clipRule="evenodd" d="M4.75 3C5.16421 3 5.5 3.33579 5.5 3.75V5.71122C7.1554 4.03743 9.4791 3 12 3C16.9706 3 21 7.02944 21 12C21 12.3803 20.9764 12.7555 20.9304 13.1241C20.8792 13.5351 20.5044 13.8267 20.0934 13.7755C19.6823 13.7242 19.3907 13.3495 19.4419 12.9384C19.4802 12.6313 19.5 12.3181 19.5 12C19.5 7.85786 16.1421 4.5 12 4.5C9.77612 4.5 7.73561 5.46681 6.3448 7H8.75C9.16421 7 9.5 7.33579 9.5 7.75C9.5 8.16421 9.16421 8.5 8.75 8.5H5.25C4.55964 8.5 4 7.94036 4 7.25V3.75C4 3.33579 4.33579 3 4.75 3ZM3.90663 10.2245C4.31766 10.2758 4.60932 10.6505 4.55806 11.0616C4.51977 11.3687 4.5 11.6819 4.5 12C4.5 16.1421 7.85786 19.5 12 19.5C14.2239 19.5 16.2644 18.5332 17.6552 17H15.2618C14.8476 17 14.5118 16.6642 14.5118 16.25C14.5118 15.8358 14.8476 15.5 15.2618 15.5H18.7618C19.4522 15.5 20.0118 16.0596 20.0118 16.75V20.25C20.0118 20.6642 19.6761 21 19.2618 21C18.8476 21 18.5118 20.6642 18.5118 20.25V18.2768C16.8557 19.9576 14.5269 21 12 21C7.02944 21 3 16.9706 3 12C3 11.6197 3.02364 11.2445 3.06959 10.8759C3.12085 10.4649 3.4956 10.1733 3.90663 10.2245Z"/></svg>
           </button>
-          <button onClick={() => window.hogium.newTab()} title="New Tab">
+          <button onClick={newTab} title="New Tab">
             <svg viewBox="0 0 24 24"><path fillRule="evenodd" clipRule="evenodd" d="M12 3a.75.75 0 0 1 .75.75v7.5h7.5a.75.75 0 0 1 0 1.5h-7.5v7.5a.75.75 0 0 1-1.5 0v-7.5h-7.5a.75.75 0 0 1 0-1.5h7.5v-7.5A.75.75 0 0 1 12 3Z"/></svg>
           </button>
         </div>
 
         <div
           className="address-bar"
-          onClick={() => window.hogium.openAddressBar()}
+          onClick={handleAddressBarClick}
         >
           {url ? (
             <span className="address-bar-url">{url}</span>

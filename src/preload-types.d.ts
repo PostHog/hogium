@@ -18,43 +18,45 @@ declare global {
   }
 
   interface HogiumBridge {
+    // Navigation
     navigate: (url: string) => void;
     back: () => void;
     forward: () => void;
     refresh: () => void;
-    newTab: () => void;
-    onUrlChanged: (callback: (url: string) => void) => void;
-    onLoading: (callback: (loading: boolean) => void) => void;
-    onFocusUrlBar: (callback: () => void) => void;
     openAddressBar: () => void;
-  }
 
-  interface HogiumSidebarBridge {
+    // Tabs
     newTab: () => void;
     closeTab: (id: number) => void;
     switchTab: (id: number) => void;
-    startWindowDrag: () => void;
-    stopWindowDrag: () => void;
-    toggleMaximize: () => void;
-    onTabsUpdated: (callback: (tabs: SidebarTab[]) => void) => void;
+
+    // Overlay
+    submitOverlay: (url: string, mode: string) => void;
+    cancelOverlay: () => void;
+
+    // Sidebar
+    sidebarVisibilityChanged: (visible: boolean) => void;
+
+    // History
     searchHistory: (query: string) => Promise<HistoryEntry[]>;
     getRecentHistory: () => Promise<HistoryEntry[]>;
     deleteHistoryEntry: (id: number) => void;
     clearHistory: () => void;
     openUrl: (url: string) => void;
-  }
 
-  interface HogiumNewTabBridge {
-    submit: (url: string) => void;
-    cancel: () => void;
-    onShow: (callback: (prefillUrl: string) => void) => void;
-    searchHistory: (query: string) => Promise<HistoryEntry[]>;
-    getRecentHistory: () => Promise<HistoryEntry[]>;
+    // Listeners
+    onUrlChanged: (callback: (url: string) => void) => void;
+    onLoading: (callback: (loading: boolean) => void) => void;
+    onTabsUpdated: (callback: (tabs: SidebarTab[]) => void) => void;
+    onShowOverlay: (callback: (mode: string, prefillUrl: string) => void) => void;
+    onFocusUrlBar: (callback: () => void) => void;
+    onToggleSidebar: (callback: () => void) => void;
+
+    // Overlay visibility (for view z-ordering)
+    overlayVisibilityChanged: (visible: boolean) => void;
   }
 
   interface Window {
     hogium: HogiumBridge;
-    hogiumSidebar: HogiumSidebarBridge;
-    hogiumNewTab: HogiumNewTabBridge;
   }
 }
