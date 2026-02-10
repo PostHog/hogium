@@ -49,4 +49,4 @@ jobs:
           gh release create "$TAG" \
             --title "Hogium v${VERSION} (build ${GITHUB_RUN_NUMBER})" \
             --generate-notes \
-            artifacts/**/*.zip
+            artifacts/*/*.zip
