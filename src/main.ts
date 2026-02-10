@@ -10,7 +10,17 @@ import {
 } from 'electron';
 import path from 'node:path';
 import { TabManager, TabInfo } from './tab-manager';
-import { getDatabase, closeDatabase, clearDatabase } from './db';
+import {
+  getDatabase,
+  closeDatabase,
+  clearDatabase,
+  recordVisit,
+  searchHistory,
+  getRecentHistory,
+  updateFaviconForUrl,
+  deleteHistoryEntry,
+  clearHistory,
+} from './db';
 
 let mainWindow: BaseWindow;
 let toolbarView: WebContentsView;
@@ -329,6 +339,13 @@ function createWindow(): void {
       }
       showNewTabOverlay();
     },
+    onNavigated: (url, title) => {
+      if (/^(data:|about:|devtools:|chrome:)/i.test(url)) return;
+      recordVisit(url, title);
+    },
+    onFaviconChanged: (url, faviconUrl) => {
+      updateFaviconForUrl(url, faviconUrl);
+    },
     onTabCreated: (webContents) => {
       // Right-click context menu
       webContents.on('context-menu', (_event, params) => {
@@ -468,6 +485,29 @@ ipcMain.on('close-tab', (_event, id: number) => {
 
 ipcMain.on('switch-tab', (_event, id: number) => {
   tabManager.switchTab(id);
+});
+
+// IPC: history
+ipcMain.handle('search-history', (_event, query: string) => {
+  return searchHistory(query);
+});
+
+ipcMain.handle('get-recent-history', () => {
+  return getRecentHistory();
+});
+
+ipcMain.on('delete-history-entry', (_event, id: number) => {
+  deleteHistoryEntry(id);
+});
+
+ipcMain.on('clear-history', () => {
+  clearHistory();
+});
+
+ipcMain.on('history-open-url', (_event, url: string) => {
+  hideNewTabOverlay();
+  const tab = tabManager.createTab(url);
+  tabManager.switchTab(tab.id);
 });
 
 // IPC: window drag from sidebar

@@ -14,6 +14,8 @@ export interface TabCallbacks {
   onTitleChanged: (title: string) => void;
   onTabCreated?: (webContents: WebContents) => void;
   onLastTabClosed?: () => void;
+  onNavigated?: (url: string, title: string) => void;
+  onFaviconChanged?: (url: string, faviconUrl: string) => void;
 }
 
 interface Tab {
@@ -28,7 +30,7 @@ let nextTabId = 1;
 
 export class TabManager {
   private tabs: Map<number, Tab> = new Map();
-  private activeTabId: number = -1;
+  private activeTabId = -1;
   private callbacks: TabCallbacks;
 
   constructor(callbacks: TabCallbacks) {
@@ -47,8 +49,11 @@ export class TabManager {
     const tab: Tab = { id, view, title: 'New Tab', url };
     this.tabs.set(id, tab);
 
+    let pendingNavigationUrl: string | null = null;
+
     view.webContents.on('did-navigate', (_event, newUrl) => {
       tab.url = newUrl;
+      pendingNavigationUrl = newUrl;
       if (tab.id === this.activeTabId) {
         this.callbacks.onUrlChanged(newUrl);
       }
@@ -65,6 +70,10 @@ export class TabManager {
 
     view.webContents.on('page-title-updated', (_event, title) => {
       tab.title = title;
+      if (pendingNavigationUrl) {
+        this.callbacks.onNavigated?.(pendingNavigationUrl, title);
+        pendingNavigationUrl = null;
+      }
       if (tab.id === this.activeTabId) {
         this.callbacks.onTitleChanged(title);
       }
@@ -74,6 +83,7 @@ export class TabManager {
     view.webContents.on('page-favicon-updated', (_event, favicons) => {
       if (favicons.length > 0) {
         tab.faviconUrl = favicons[0];
+        this.callbacks.onFaviconChanged?.(tab.url, favicons[0]);
         this.broadcastTabs();
       }
     });

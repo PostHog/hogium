@@ -7,8 +7,21 @@ export interface Migration {
 
 /** Ordered list of migrations. Append new ones at the end. */
 export const migrations: Migration[] = [
-  // Future feature tables go here, e.g.:
-  // { version: 1, up: (db) => { db.exec(`CREATE TABLE ...`); } },
+  {
+    version: 1,
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE history (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          url TEXT NOT NULL,
+          title TEXT NOT NULL DEFAULT '',
+          favicon_url TEXT,
+          visited_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+      `);
+      db.exec(`CREATE INDEX idx_history_visited_at ON history (visited_at DESC)`);
+    },
+  },
 ];
 
 export function runMigrations(db: Database.Database): void {
