@@ -6,6 +6,14 @@ interface SidebarTab {
   active: boolean;
 }
 
+interface HistoryEntry {
+  id: number;
+  url: string;
+  title: string;
+  faviconUrl?: string;
+  visitedAt: string;
+}
+
 interface HogiumBridge {
   navigate: (url: string) => void;
   back: () => void;
@@ -25,6 +33,11 @@ interface HogiumSidebarBridge {
   stopWindowDrag: () => void;
   toggleMaximize: () => void;
   onTabsUpdated: (callback: (tabs: SidebarTab[]) => void) => void;
+  searchHistory: (query: string) => Promise<HistoryEntry[]>;
+  getRecentHistory: () => Promise<HistoryEntry[]>;
+  deleteHistoryEntry: (id: number) => void;
+  clearHistory: () => void;
+  openUrl: (url: string) => void;
 }
 
 interface HogiumNewTabBridge {

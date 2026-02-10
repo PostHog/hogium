@@ -20,4 +20,9 @@ contextBridge.exposeInMainWorld('hogiumSidebar', {
       callback(tabs),
     );
   },
+  searchHistory: (query: string) => ipcRenderer.invoke('search-history', query),
+  getRecentHistory: () => ipcRenderer.invoke('get-recent-history'),
+  deleteHistoryEntry: (id: number) => ipcRenderer.send('delete-history-entry', id),
+  clearHistory: () => ipcRenderer.send('clear-history'),
+  openUrl: (url: string) => ipcRenderer.send('history-open-url', url),
 });
