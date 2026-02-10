@@ -29,6 +29,7 @@ let overlayView: WebContentsView;
 let tabManager: TabManager;
 let sidebarVisible = true;
 let overlayVisible = false;
+let overlayMode: 'new-tab' | 'navigate' = 'new-tab';
 
 const TOOLBAR_HEIGHT = 44;
 const SIDEBAR_WIDTH = 220;
@@ -100,13 +101,14 @@ function setActiveTabView(view: WebContentsView): void {
   updateLayout();
 }
 
-function showNewTabOverlay(): void {
+function showNewTabOverlay(mode: 'new-tab' | 'navigate' = 'new-tab', prefillUrl = ''): void {
   if (overlayVisible) return;
+  overlayMode = mode;
   overlayVisible = true;
   mainWindow.contentView.addChildView(overlayView);
   updateLayout();
   overlayView.webContents.focus();
-  overlayView.webContents.send('show-overlay');
+  overlayView.webContents.send('show-overlay', prefillUrl);
 }
 
 function hideNewTabOverlay(): void {
@@ -469,8 +471,18 @@ ipcMain.on('new-tab', () => {
 
 ipcMain.on('new-tab-submit', (_event, url: string) => {
   hideNewTabOverlay();
-  const tab = tabManager.createTab(url);
-  tabManager.switchTab(tab.id);
+  if (overlayMode === 'navigate') {
+    tabManager?.getActiveView()?.webContents.loadURL(url);
+  } else {
+    const tab = tabManager.createTab(url);
+    tabManager.switchTab(tab.id);
+  }
+});
+
+ipcMain.on('open-address-bar', () => {
+  const activeView = tabManager?.getActiveView();
+  const url = activeView?.webContents.getURL() ?? '';
+  showNewTabOverlay('navigate', url);
 });
 
 ipcMain.on('new-tab-cancel', () => {

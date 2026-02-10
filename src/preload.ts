@@ -17,4 +17,5 @@ contextBridge.exposeInMainWorld('hogium', {
   onFocusUrlBar: (callback: () => void) => {
     ipcRenderer.on('focus-url-bar', () => callback());
   },
+  openAddressBar: () => ipcRenderer.send('open-address-bar'),
 });
