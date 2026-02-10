@@ -34,4 +34,5 @@ jobs:
           gh release create "$TAG" \
             --title "Hogium v${VERSION} (build ${GITHUB_RUN_NUMBER})" \
             --generate-notes \
-            out/make/zip/darwin/arm64/*.zip
+            out/make/zip/darwin/arm64/*.zip \
+            out/make/*.dmg
