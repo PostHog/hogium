@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react';
-import { resolveInput } from './url';
 
 const LOGO_SVG = (
   <svg viewBox="0 0 50 30" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -12,13 +11,13 @@ const LOGO_SVG = (
 );
 
 export function Toolbar({ platform }: { platform?: string }) {
-  const addressBarRef = useRef<HTMLInputElement>(null);
   const progressBarRef = useRef<HTMLDivElement>(null);
   const [progressClass, setProgressClass] = useState('progress-bar');
+  const [url, setUrl] = useState('');
 
   useEffect(() => {
-    window.hogium.onUrlChanged((url) => {
-      if (addressBarRef.current) addressBarRef.current.value = url;
+    window.hogium.onUrlChanged((newUrl) => {
+      setUrl(newUrl);
     });
 
     window.hogium.onLoading((loading) => {
@@ -33,19 +32,9 @@ export function Toolbar({ platform }: { platform?: string }) {
     });
 
     window.hogium.onFocusUrlBar(() => {
-      addressBarRef.current?.focus();
-      addressBarRef.current?.select();
+      window.hogium.openAddressBar();
     });
   }, []);
-
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      const input = addressBarRef.current?.value.trim();
-      if (!input) return;
-      window.hogium.navigate(resolveInput(input));
-      addressBarRef.current?.blur();
-    }
-  };
 
   return (
     <div data-view="toolbar" className={platform === 'darwin' ? 'macos' : undefined}>
@@ -70,13 +59,16 @@ export function Toolbar({ platform }: { platform?: string }) {
           </button>
         </div>
 
-        <input
-          type="text"
+        <div
           className="address-bar"
-          placeholder="Search or enter URL..."
-          ref={addressBarRef}
-          onKeyDown={handleKeyPress}
-        />
+          onClick={() => window.hogium.openAddressBar()}
+        >
+          {url ? (
+            <span className="address-bar-url">{url}</span>
+          ) : (
+            <span className="address-bar-placeholder">Search or enter URL…</span>
+          )}
+        </div>
 
         <div className={progressClass} ref={progressBarRef} />
       </div>
