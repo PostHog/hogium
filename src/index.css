@@ -12,6 +12,30 @@ html, body, #root {
   user-select: none;
 }
 
+/* ── Chrome Shell Layout ── */
+
+.chrome-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chrome-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.content-area {
+  flex: 1;
+  pointer-events: none;
+  position: relative;
+}
+
+.content-area > * {
+  pointer-events: auto;
+}
+
 /* ── Toolbar ── */
 
 [data-view="toolbar"] {
@@ -27,10 +51,10 @@ html, body, #root {
   --progress-color: #1D4AFF;
   --logo-body: #000;
 
-  height: 100%;
   background: var(--bg);
   color: var(--text-primary);
   -webkit-app-region: drag;
+  flex-shrink: 0;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -50,7 +74,7 @@ html, body, #root {
 }
 
 .toolbar {
-  height: 100%;
+  height: 44px;
   display: flex;
   align-items: center;
   padding: 0 10px;
@@ -193,10 +217,12 @@ html, body, #root {
   --favicon-placeholder: rgba(0, 0, 0, 0.08);
   --scrollbar-thumb: rgba(0, 0, 0, 0.15);
 
-  height: 100%;
+  width: 220px;
+  flex-shrink: 0;
   overflow: hidden;
   background: var(--bg);
   color: var(--text-primary);
+  -webkit-app-region: drag;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -240,6 +266,7 @@ html, body, #root {
   text-align: left;
   flex-shrink: 0;
   transition: background 0.15s, color 0.15s;
+  -webkit-app-region: no-drag;
 }
 
 .new-tab-btn:hover {
@@ -258,6 +285,7 @@ html, body, #root {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  -webkit-app-region: no-drag;
 }
 
 .tab-scroll::-webkit-scrollbar {
@@ -334,6 +362,7 @@ html, body, #root {
   display: flex;
   align-items: center;
   justify-content: center;
+  -webkit-app-region: no-drag;
 }
 
 .tab-close svg {
@@ -357,6 +386,7 @@ html, body, #root {
   display: flex;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
+  -webkit-app-region: no-drag;
 }
 
 .panel-toggle button {
@@ -391,6 +421,7 @@ html, body, #root {
   flex-direction: column;
   flex: 1;
   overflow: hidden;
+  -webkit-app-region: no-drag;
 }
 
 .history-search {
@@ -506,8 +537,10 @@ html, body, #root {
   --btn-hover: rgba(0, 0, 0, 0.06);
   --focus-color: #1D4AFF;
 
-  height: 100%;
+  position: absolute;
+  inset: 0;
   color: var(--text-primary);
+  pointer-events: auto;
 }
 
 @media (prefers-color-scheme: dark) {

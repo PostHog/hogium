@@ -26,7 +26,8 @@
     "@posthog/icons": "^0.36.5",
     "better-sqlite3": "^12.6.2",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react-dom": "^19.2.4",
+    "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.1",

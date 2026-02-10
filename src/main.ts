@@ -5,7 +5,6 @@ import {
   dialog,
   ipcMain,
   Menu,
-  screen,
   nativeTheme,
 } from 'electron';
 import path from 'node:path';
@@ -23,46 +22,21 @@ import {
 } from './db';
 
 let mainWindow: BaseWindow;
-let toolbarView: WebContentsView;
-let sidebarView: WebContentsView;
-let overlayView: WebContentsView;
+let chromeView: WebContentsView;
 let tabManager: TabManager;
 let sidebarVisible = true;
-let overlayVisible = false;
-let overlayMode: 'new-tab' | 'navigate' = 'new-tab';
 
 const TOOLBAR_HEIGHT = 44;
 const SIDEBAR_WIDTH = 220;
-
-function loadView(view: WebContentsView, viewName: string, extraParams?: Record<string, string>): void {
-  const params = new URLSearchParams({ view: viewName, ...extraParams });
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    view.webContents.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}?${params}`);
-  } else {
-    view.webContents.loadFile(
-      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-      { search: params.toString() }
-    );
-  }
-}
 
 function updateLayout(): void {
   const { width, height } = mainWindow.getContentBounds();
   const sidebarW = sidebarVisible ? SIDEBAR_WIDTH : 0;
 
-  toolbarView.setBounds({ x: 0, y: 0, width, height: TOOLBAR_HEIGHT });
+  // Chrome view covers the full window
+  chromeView.setBounds({ x: 0, y: 0, width, height });
 
-  if (sidebarVisible) {
-    sidebarView.setBounds({
-      x: 0,
-      y: TOOLBAR_HEIGHT,
-      width: SIDEBAR_WIDTH,
-      height: height - TOOLBAR_HEIGHT,
-    });
-  } else {
-    sidebarView.setBounds({ x: -SIDEBAR_WIDTH, y: 0, width: 0, height: 0 });
-  }
-
+  // Tab views sit behind the chrome view, offset by toolbar and sidebar
   const activeView = tabManager?.getActiveView();
   if (activeView) {
     activeView.setBounds({
@@ -72,54 +46,37 @@ function updateLayout(): void {
       height: height - TOOLBAR_HEIGHT,
     });
   }
-
-  if (overlayView) {
-    overlayView.setBounds({
-      x: sidebarW,
-      y: TOOLBAR_HEIGHT,
-      width: width - sidebarW,
-      height: height - TOOLBAR_HEIGHT,
-    });
-  }
 }
 
 function setActiveTabView(view: WebContentsView): void {
+  // Remove all tab views (keep chromeView)
   const children = mainWindow.contentView.children;
   for (let i = children.length - 1; i >= 0; i--) {
     const child = children[i];
-    if (child !== toolbarView && child !== sidebarView && child !== overlayView) {
+    if (child !== chromeView) {
       mainWindow.contentView.removeChildView(child);
     }
   }
 
+  // Add tab view on top of chrome view (chrome is behind, but toolbar/sidebar
+  // aren't covered by the tab view since it's offset by toolbar height + sidebar width)
   mainWindow.contentView.addChildView(view);
-  // Keep overlay on top if visible
-  if (overlayVisible && overlayView) {
-    mainWindow.contentView.removeChildView(overlayView);
-    mainWindow.contentView.addChildView(overlayView);
+  updateLayout();
+}
+
+function broadcastTabsToChrome(tabs: TabInfo[], activeId: number): void {
+  const chromeTabs = tabs.map((t) => ({ ...t, active: t.id === activeId }));
+  chromeView.webContents.send('tabs-updated', chromeTabs);
+}
+
+function loadChromeView(): void {
+  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    chromeView.webContents.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+  } else {
+    chromeView.webContents.loadFile(
+      path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
+    );
   }
-  updateLayout();
-}
-
-function showNewTabOverlay(mode: 'new-tab' | 'navigate' = 'new-tab', prefillUrl = ''): void {
-  if (overlayVisible) return;
-  overlayMode = mode;
-  overlayVisible = true;
-  mainWindow.contentView.addChildView(overlayView);
-  updateLayout();
-  overlayView.webContents.focus();
-  overlayView.webContents.send('show-overlay', prefillUrl);
-}
-
-function hideNewTabOverlay(): void {
-  if (!overlayVisible) return;
-  overlayVisible = false;
-  mainWindow.contentView.removeChildView(overlayView);
-}
-
-function broadcastTabsToSidebar(tabs: TabInfo[], activeId: number): void {
-  const sidebarTabs = tabs.map((t) => ({ ...t, active: t.id === activeId }));
-  sidebarView.webContents.send('tabs-updated', sidebarTabs);
 }
 
 function setupApplicationMenu(): void {
@@ -148,26 +105,21 @@ function setupApplicationMenu(): void {
         {
           label: 'New Tab',
           accelerator: 'CommandOrControl+T',
-          click: () => showNewTabOverlay(),
+          click: () => chromeView.webContents.send('show-overlay', 'new-tab', ''),
         },
         {
           label: 'Close Tab',
           accelerator: 'CommandOrControl+W',
           click: () => {
-            if (overlayVisible) {
-              // Don't dismiss if there are no tabs
-              if (tabManager?.getActiveTabId() >= 0) hideNewTabOverlay();
-            } else {
-              const activeId = tabManager?.getActiveTabId();
-              if (activeId !== undefined && activeId >= 0)
-                tabManager.closeTab(activeId);
-            }
+            const activeId = tabManager?.getActiveTabId();
+            if (activeId !== undefined && activeId >= 0)
+              tabManager.closeTab(activeId);
           },
         },
         {
           label: 'Focus URL Bar',
           accelerator: 'CommandOrControl+L',
-          click: () => toolbarView.webContents.send('focus-url-bar'),
+          click: () => chromeView.webContents.send('focus-url-bar'),
         },
         { type: 'separator' },
         {
@@ -211,8 +163,7 @@ function setupApplicationMenu(): void {
           label: 'Toggle Sidebar',
           accelerator: 'CommandOrControl+B',
           click: () => {
-            sidebarVisible = !sidebarVisible;
-            updateLayout();
+            chromeView.webContents.send('toggle-sidebar');
           },
         },
         { type: 'separator' },
@@ -288,44 +239,25 @@ function createWindow(): void {
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#1E1F23' : '#EEEFE9',
   });
 
-  toolbarView = new WebContentsView({
+  chromeView = new WebContentsView({
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js'),
-    },
-  });
-
-  sidebarView = new WebContentsView({
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, 'sidebar-preload.js'),
-    },
-  });
-
-  overlayView = new WebContentsView({
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, 'new-tab-preload.js'),
+      preload: path.join(__dirname, 'chrome-preload.js'),
       transparent: true,
     },
   });
-  overlayView.setBackgroundColor('#00000000');
-  loadView(overlayView, 'new-tab-overlay');
-
-  mainWindow.contentView.addChildView(toolbarView);
-  mainWindow.contentView.addChildView(sidebarView);
+  chromeView.setBackgroundColor('#00000000');
+  mainWindow.contentView.addChildView(chromeView);
 
   tabManager = new TabManager({
-    onTabsChanged: broadcastTabsToSidebar,
+    onTabsChanged: broadcastTabsToChrome,
     onActiveTabChanged: () => {
       const view = tabManager.getActiveView();
       if (view) setActiveTabView(view);
     },
     onUrlChanged: (url) => {
-      toolbarView.webContents.send('url-changed', url);
+      chromeView.webContents.send('url-changed', url);
     },
     onTitleChanged: (title) => {
       mainWindow.setTitle(`${title} - hogium`);
@@ -335,11 +267,11 @@ function createWindow(): void {
       const children = mainWindow.contentView.children;
       for (let i = children.length - 1; i >= 0; i--) {
         const child = children[i];
-        if (child !== toolbarView && child !== sidebarView && child !== overlayView) {
+        if (child !== chromeView) {
           mainWindow.contentView.removeChildView(child);
         }
       }
-      showNewTabOverlay();
+      chromeView.webContents.send('show-overlay', 'new-tab', '');
     },
     onNavigated: (url, title) => {
       if (/^(data:|about:|devtools:|chrome:)/i.test(url)) return;
@@ -388,10 +320,10 @@ function createWindow(): void {
 
       // Loading indicator
       webContents.on('did-start-loading', () => {
-        toolbarView.webContents.send('loading', true);
+        chromeView.webContents.send('loading', true);
       });
       webContents.on('did-stop-loading', () => {
-        toolbarView.webContents.send('loading', false);
+        chromeView.webContents.send('loading', false);
       });
 
       // Error pages
@@ -429,17 +361,17 @@ function createWindow(): void {
 
   mainWindow.on('resize', updateLayout);
 
-  loadView(toolbarView, 'toolbar', { platform: process.platform });
-  loadView(sidebarView, 'sidebar');
+  loadChromeView();
 
-  // Show new tab overlay on launch (no tab created yet)
-  showNewTabOverlay();
+  // Show new tab overlay on launch (sent after chrome view loads)
+  chromeView.webContents.once('did-finish-load', () => {
+    chromeView.webContents.send('show-overlay', 'new-tab', '');
+    updateLayout();
+  });
 
   mainWindow.on('closed', () => {
     tabManager.destroyAll();
-    toolbarView.webContents.close();
-    sidebarView.webContents.close();
-    overlayView.webContents.close();
+    chromeView.webContents.close();
   });
 
   setupApplicationMenu();
@@ -466,12 +398,11 @@ ipcMain.on('refresh', () => {
 
 // IPC: tabs
 ipcMain.on('new-tab', () => {
-  showNewTabOverlay();
+  chromeView.webContents.send('show-overlay', 'new-tab', '');
 });
 
-ipcMain.on('new-tab-submit', (_event, url: string) => {
-  hideNewTabOverlay();
-  if (overlayMode === 'navigate') {
+ipcMain.on('new-tab-submit', (_event, url: string, mode: string) => {
+  if (mode === 'navigate') {
     tabManager?.getActiveView()?.webContents.loadURL(url);
   } else {
     const tab = tabManager.createTab(url);
@@ -482,13 +413,11 @@ ipcMain.on('new-tab-submit', (_event, url: string) => {
 ipcMain.on('open-address-bar', () => {
   const activeView = tabManager?.getActiveView();
   const url = activeView?.webContents.getURL() ?? '';
-  showNewTabOverlay('navigate', url);
+  chromeView.webContents.send('show-overlay', 'navigate', url);
 });
 
 ipcMain.on('new-tab-cancel', () => {
-  // Don't dismiss if there are no tabs — nowhere to go
-  if (tabManager.getActiveTabId() < 0) return;
-  hideNewTabOverlay();
+  // Nothing to do on main side - renderer handles overlay hide
 });
 
 ipcMain.on('close-tab', (_event, id: number) => {
@@ -497,6 +426,12 @@ ipcMain.on('close-tab', (_event, id: number) => {
 
 ipcMain.on('switch-tab', (_event, id: number) => {
   tabManager.switchTab(id);
+});
+
+// IPC: sidebar visibility
+ipcMain.on('sidebar-visibility-changed', (_event, visible: boolean) => {
+  sidebarVisible = visible;
+  updateLayout();
 });
 
 // IPC: history
@@ -517,33 +452,23 @@ ipcMain.on('clear-history', () => {
 });
 
 ipcMain.on('history-open-url', (_event, url: string) => {
-  hideNewTabOverlay();
   const tab = tabManager.createTab(url);
   tabManager.switchTab(tab.id);
 });
 
-// IPC: window drag from sidebar
-let dragInterval: ReturnType<typeof setInterval> | null = null;
-
-ipcMain.on('start-window-drag', () => {
-  if (dragInterval) return;
-  if (mainWindow.isMaximized()) return;
-
-  const cursor = screen.getCursorScreenPoint();
-  const [winX, winY] = mainWindow.getPosition();
-  const offsetX = cursor.x - winX;
-  const offsetY = cursor.y - winY;
-
-  dragInterval = setInterval(() => {
-    const pos = screen.getCursorScreenPoint();
-    mainWindow.setPosition(pos.x - offsetX, pos.y - offsetY);
-  }, 16);
-});
-
-ipcMain.on('stop-window-drag', () => {
-  if (dragInterval) {
-    clearInterval(dragInterval);
-    dragInterval = null;
+// IPC: overlay visibility (reorder views so chromeView is on top when overlay shows)
+ipcMain.on('overlay-visibility-changed', (_event, visible: boolean) => {
+  if (visible) {
+    // Bring chrome view to front so overlay can receive clicks
+    mainWindow.contentView.removeChildView(chromeView);
+    mainWindow.contentView.addChildView(chromeView);
+  } else {
+    // Put chrome view behind tab views
+    const tabView = tabManager?.getActiveView();
+    if (tabView) {
+      mainWindow.contentView.removeChildView(tabView);
+      mainWindow.contentView.addChildView(tabView);
+    }
   }
 });
 
