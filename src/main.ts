@@ -2,6 +2,7 @@ import {
   app,
   BaseWindow,
   WebContentsView,
+  dialog,
   ipcMain,
   Menu,
   screen,
@@ -9,6 +10,7 @@ import {
 } from 'electron';
 import path from 'node:path';
 import { TabManager, TabInfo } from './tab-manager';
+import { getDatabase, closeDatabase, clearDatabase } from './db';
 
 let mainWindow: BaseWindow;
 let toolbarView: WebContentsView;
@@ -154,6 +156,22 @@ function setupApplicationMenu(): void {
           label: 'Focus URL Bar',
           accelerator: 'CommandOrControl+L',
           click: () => toolbarView.webContents.send('focus-url-bar'),
+        },
+        { type: 'separator' },
+        {
+          label: 'Clear Browsing Data',
+          click: async () => {
+            const { response } = await dialog.showMessageBox(mainWindow, {
+              type: 'warning',
+              buttons: ['Cancel', 'Clear Data'],
+              defaultId: 0,
+              cancelId: 0,
+              message: 'Clear all browsing data?',
+              detail:
+                'This will delete all stored data including bookmarks and history. This cannot be undone.',
+            });
+            if (response === 1) clearDatabase();
+          },
         },
       ],
     },
@@ -486,7 +504,12 @@ ipcMain.on('toggle-maximize', () => {
 });
 
 app.whenReady().then(() => {
+  getDatabase();
   createWindow();
+});
+
+app.on('before-quit', () => {
+  closeDatabase();
 });
 
 app.on('window-all-closed', () => {
