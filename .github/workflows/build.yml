@@ -1,0 +1,52 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install
+
+      - run: pnpm make --arch=arm64
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: hogium-darwin-arm64
+          path: out/make/zip/darwin/arm64/*.zip
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          TAG="v${VERSION}-build.${GITHUB_RUN_NUMBER}"
+
+          gh release create "$TAG" \
+            --title "Hogium v${VERSION} (build ${GITHUB_RUN_NUMBER})" \
+            --generate-notes \
+            artifacts/**/*.zip
