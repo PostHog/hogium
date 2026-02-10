@@ -13,11 +13,11 @@ function App() {
   const overlayVisible = useChromeStore((s) => s.overlay.visible);
 
   return (
-    <div className="chrome-shell">
+    <div className="flex flex-col h-full">
       <Toolbar platform={platform} />
-      <div className="chrome-body">
+      <div className="flex flex-1 min-h-0">
         {sidebarVisible && <Sidebar />}
-        <div className="content-area">
+        <div className="flex-1 pointer-events-none relative [&>*]:pointer-events-auto">
           {overlayVisible && <NewTabOverlay />}
         </div>
       </div>

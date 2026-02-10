@@ -79,26 +79,26 @@ export function Autocomplete({
   if (!visible || results.length === 0) return null;
 
   return (
-    <div className={`autocomplete ${className ?? ''}`}>
+    <div className={className}>
       {results.map((entry, i) => (
         <div
           key={entry.id}
-          className={`autocomplete-item${i === selectedIndex ? ' selected' : ''}`}
+          className={`flex items-center py-2 px-3 gap-2 cursor-pointer transition-colors duration-100 hover:bg-hover ${i === selectedIndex ? 'bg-hover' : ''}`}
           onMouseDown={(e) => {
             e.preventDefault();
             onSelect(entry.url);
           }}
         >
           {entry.faviconUrl ? (
-            <img className="autocomplete-favicon" src={entry.faviconUrl} />
+            <img className="w-4 h-4 shrink-0 rounded-sm" src={entry.faviconUrl} />
           ) : (
-            <div className="autocomplete-favicon-placeholder" />
+            <div className="w-4 h-4 shrink-0 bg-hover rounded-sm" />
           )}
-          <div className="autocomplete-text">
-            <div className="autocomplete-title">
+          <div className="flex-1 min-w-0 flex flex-col gap-px">
+            <div className="text-[13px] truncate">
               {entry.title || getDomain(entry.url)}
             </div>
-            <div className="autocomplete-url">{getDomain(entry.url)}</div>
+            <div className="text-[11px] text-muted truncate">{getDomain(entry.url)}</div>
           </div>
         </div>
       ))}

@@ -4,7 +4,7 @@ import { Autocomplete } from './Autocomplete';
 import { resolveInput } from './url';
 
 const SEARCH_ICON = (
-  <svg className="search-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <svg className="w-4 h-4 text-muted shrink-0" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M21 21l-4.35-4.35M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
@@ -86,14 +86,14 @@ export function NewTabOverlay() {
   };
 
   return (
-    <div data-view="new-tab-overlay">
-      <div className="overlay-backdrop" onClick={handleBackdropClick}>
-        <div className="overlay-card">
-          <div className="search-input-wrap">
+    <div className="absolute inset-0 text-primary pointer-events-auto">
+      <div className="bg-backdrop flex items-start justify-center h-full pt-[20vh]" onClick={handleBackdropClick}>
+        <div className="w-[560px] max-w-[90vw] bg-surface-overlay border border-border rounded-xl shadow-[0_12px_40px_var(--c-shadow),0_4px_12px_var(--c-shadow)] overflow-hidden">
+          <div className="flex items-center px-4">
             {SEARCH_ICON}
             <input
               type="text"
-              className="search-input"
+              className="flex-1 bg-transparent border-none py-3.5 px-3 text-primary text-base outline-none placeholder:text-muted"
               placeholder="Search or enter URL…"
               ref={inputRef}
               value={inputValue}
@@ -113,7 +113,7 @@ export function NewTabOverlay() {
             searchHistory={searchHistory}
             getRecentHistory={getRecentHistory}
             selectedIndex={selectedIndex}
-            className="overlay-autocomplete"
+            className="border-t border-border max-h-80 overflow-y-auto"
           />
         </div>
       </div>
